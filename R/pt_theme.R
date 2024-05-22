@@ -5,7 +5,7 @@
 #'
 #' @examples
 #' # Create a basic ggplot
-#' p <-  ggplot2::ggplot(mtcars, aes(mpg, hp)) + geom_point()
+#' p <-  ggplot2::ggplot(mtcars, ggplot2::aes(mpg, hp)) + geom_point()
 #'
 #' # Apply the custom theme
 #' p + theme_custom()
