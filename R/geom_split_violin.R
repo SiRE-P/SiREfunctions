@@ -44,6 +44,7 @@ GeomSplitViolin <- ggplot2::ggproto("GeomSplitViolin", GeomViolin,
 #' @param inherit.aes If `FALSE`, overrides the default aesthetics, rather than combining with them. This is most useful for helper functions that define both data and aesthetics and shouldn't inherit behaviour from the default plot specification, e.g. `borders()`.
 #' @return A ggplot layer.
 #' @seealso \code{\link[ggplot2]{layer}}, \code{\link[ggplot2]{geom_violin}}
+#' @export
 geom_split_violin <- function(mapping = NULL, data = NULL, stat = "ydensity", position = "identity", ...,
                               draw_quantiles = NULL, trim = TRUE, scale = "width", na.rm = FALSE,
                               show.legend = NA, inherit.aes = TRUE) {

@@ -9,7 +9,7 @@
 #'
 #' # Apply the custom theme
 #' p + theme_pt()
-
+#' @export
 theme_pt <- function() {
   ggplot2::theme_bw() +
     ggplot2::theme(
