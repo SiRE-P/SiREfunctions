@@ -12,7 +12,7 @@ theme_bw(), but with grid lines removed and facet boxes white with no border.
 }
 \examples{
 # Create a basic ggplot
-p <-  ggplot2::ggplot(mtcars, ggplot2::aes(mpg, hp)) + geom_point()
+p <-  ggplot2::ggplot(mtcars, ggplot2::aes(mpg, hp)) + ggplot2::geom_point()
 
 # Apply the custom theme
 p + theme_custom()
