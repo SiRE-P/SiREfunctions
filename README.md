@@ -1,4 +1,10 @@
-#Package that includes functions and data for use across projects
+# SiREfunctions
 
-## Install
-`devtools::install_github("https://github.com/SiRE-P/SiREfunctions")`
+Package that includes functions and data for use across projects
+
+## Installation
+
+
+```r
+# install.packages("devtools")
+devtools::install_github("SiRE-P/SIREfunctions")
