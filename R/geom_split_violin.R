@@ -7,7 +7,7 @@
 #' @return A ggplot grob.
 #' @seealso \code{\link[ggplot2]{GeomViolin}}, \code{\link[ggplot2]{GeomPolygon}}
 #' @importFrom ggplot2 GeomViolin
-GeomSplitViolin <- ggplot2::ggproto("GeomSplitViolin", ggplot2::GeomViolin,
+GeomSplitViolin <- ggplot2::ggproto("GeomSplitViolin", GeomViolin,
                            draw_group = function(self, data, ..., draw_quantiles = NULL) {
                              data <- transform(data, xminv = x - violinwidth * (x - xmin), xmaxv = x + violinwidth * (xmax - x))
                              grp <- data[1, "group"]
@@ -47,7 +47,7 @@ GeomSplitViolin <- ggplot2::ggproto("GeomSplitViolin", ggplot2::GeomViolin,
 geom_split_violin <- function(mapping = NULL, data = NULL, stat = "ydensity", position = "identity", ...,
                               draw_quantiles = NULL, trim = TRUE, scale = "width", na.rm = FALSE,
                               show.legend = NA, inherit.aes = TRUE) {
-  layer(data = data, mapping = mapping, stat = stat, geom = GeomSplitViolin,
+  ggplot2::layer(data = data, mapping = mapping, stat = stat, geom = GeomSplitViolin,
         position = position, show.legend = show.legend, inherit.aes = inherit.aes,
         params = list(trim = trim, scale = scale, draw_quantiles = draw_quantiles, na.rm = na.rm, ...))
 }

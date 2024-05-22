@@ -5,16 +5,16 @@
 #'
 #' @examples
 #' # Create a basic ggplot
-#' p <-  ggplot2::ggplot(mtcars, ggplot2::aes(mpg, hp)) + geom_point()
+#' p <-  ggplot2::ggplot(mtcars, ggplot2::aes(mpg, hp)) + ggplot2::geom_point()
 #'
 #' # Apply the custom theme
 #' p + theme_custom()
 
 theme_pt <- function() {
-  theme_bw() +
-    theme(
-      panel.grid.major = element_blank(),
-      panel.grid.minor = element_blank(),
-      strip.background = element_rect(fill = "white", colour = NA)
+  ggplot2::theme_bw() +
+    ggplot2::theme(
+      panel.grid.major = ggplot2::element_blank(),
+      panel.grid.minor = ggplot2::element_blank(),
+      strip.background = ggplot2::element_rect(fill = "white", colour = NA)
     )
 }
