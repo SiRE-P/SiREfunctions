@@ -17,6 +17,7 @@ Here is a list of functions included in this package:
 | :---         |    :----:       |
 | pt_theme    | This function applies a custom theme to a ggplot object. It is based on theme_bw(), but with grid lines removed and facet boxes white with no border. |
 | geom_split_violin    | Create a split violin plot |
+| unscale | This function takes data on a standardized (mean = 0, sd = 1) scale and converts it back to the original scale. This is useful for converting predictions from models that used standardized variables back to their original scale. | 
 
 
 ### Data
