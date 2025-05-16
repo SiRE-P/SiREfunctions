@@ -10,7 +10,7 @@ run_or_load_stan(
   data_list,
   chains = 4,
   cores = 4,
-  cache_dir = "../model_fits",
+  cache_dir = "./model_fits",
   ...
 )
 }
@@ -25,7 +25,7 @@ run_or_load_stan(
 
 \item{cores}{Number of cores (default = 4).}
 
-\item{cache_dir}{Directory to store compiled model and fit files (default = "../model_fits").}
+\item{cache_dir}{Directory to store compiled model and fit files (default = "./model_fits").}
 
 \item{...}{Additional arguments passed to \code{rstan::sampling()} (e.g., iter, warmup, seed).}
 }

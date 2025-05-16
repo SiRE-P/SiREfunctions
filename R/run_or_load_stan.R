@@ -8,12 +8,12 @@
 #' @param data_list A named list of data for the Stan model.
 #' @param chains Number of chains (default = 4).
 #' @param cores Number of cores (default = 4).
-#' @param cache_dir Directory to store compiled model and fit files (default = "../model_fits").
+#' @param cache_dir Directory to store compiled model and fit files (default = "./model_fits").
 #' @param ... Additional arguments passed to \code{rstan::sampling()} (e.g., iter, warmup, seed).
 #'
 #' @return A fitted \code{stanfit} object.
 #' @export
-run_or_load_stan <- function(model_name, stan_path, data_list, chains = 4, cores = 4, cache_dir = "../model_fits", ...) {
+run_or_load_stan <- function(model_name, stan_path, data_list, chains = 4, cores = 4, cache_dir = "./model_fits", ...) {
   dir.create(cache_dir, showWarnings = FALSE, recursive = TRUE)
 
   # File paths
