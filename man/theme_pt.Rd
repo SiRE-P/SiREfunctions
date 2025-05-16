@@ -2,28 +2,27 @@
 % Please edit documentation in R/pt_theme.R
 \name{theme_pt}
 \alias{theme_pt}
-\title{A custom ggplot theme}
+\title{A custom ggplot2 theme with optional grid lines}
 \usage{
-theme_pt(facet_text_size = 12, title_size = 12, major_grid = FALSE)
+theme_pt(
+  facet_text_size = 12,
+  title_size = 12,
+  major_grid = TRUE,
+  minor_grid = FALSE
+)
 }
 \arguments{
-\item{facet_text_size}{Numeric, size of the facet text. Default is 12.}
+\item{facet_text_size}{Numeric, size of facet strip text. Default is 12.}
 
-\item{title_size}{Numeric, size of the title text. Default is 12.}
+\item{title_size}{Numeric, size of plot and axis titles. Default is 12.}
 
 \item{major_grid}{Logical, whether to show major grid lines. Default is FALSE.}
+
+\item{minor_grid}{Logical, whether to show minor grid lines. Default is FALSE.}
 }
 \value{
-A ggplot2 theme.
+A ggplot2 theme object.
 }
 \description{
-This function applies a custom theme to a ggplot object. It is based on
-theme_bw(), but with grid lines removed and facet boxes white with no border.
-}
-\examples{
-# Create a basic ggplot
-p <-  ggplot2::ggplot(mtcars, ggplot2::aes(mpg, hp)) + ggplot2::geom_point()
-
-# Apply the custom theme
-p + theme_pt()
+Based on theme_bw() with a clean white background, optional grid lines, and simplified facet styling.
 }
