@@ -1,49 +1,88 @@
-#' Fit or load cached rstan model with separate compilation
+#' Fit or load cached CmdStanR model with separate compilation and sampling
 #'
-#' This function separates model compilation from sampling. It compiles the Stan model only if the model file changes,
-#' and fits the model only if the data or sampling arguments change.
+#' This function compiles a Stan model using CmdStanR (with threading support) only when the Stan file changes,
+#' and re-samples only when the data or sampling arguments change. Cached compiled models and fits are stored
+#' using hashes of the model, data, and sampling arguments.
 #'
 #' @param model_name A short name used to save the compiled model and fit files.
 #' @param stan_path Path to the Stan model file (.stan).
 #' @param data_list A named list of data for the Stan model.
-#' @param chains Number of chains (default = 4).
-#' @param cores Number of cores (default = 4).
-#' @param cache_dir Directory to store compiled model and fit files (default = "./model_fits").
-#' @param ... Additional arguments passed to \code{rstan::sampling()} (e.g., iter, warmup, seed).
+#' @param chains Number of MCMC chains (default = auto-detected).
+#' @param cores Number of CPU cores to use (default = all available).
+#' @param cache_dir Directory to store compiled model and fit files (default = "../model_fits").
+#' @param force_recompile Logical, if TRUE forces recompilation even if model hash matches (default = FALSE).
+#' @param force_resample Logical, if TRUE forces re-sampling even if fit hash matches (default = FALSE).
+#' @param ... Additional arguments passed to \code{CmdStanModel$sample()} (e.g., iter_sampling, seed).
 #'
-#' @return A fitted \code{stanfit} object.
+#' @return A fitted \code{CmdStanMCMC} object.
 #' @export
-run_or_load_stan <- function(model_name, stan_path, data_list, chains = 4, cores = 4, cache_dir = "./model_fits", ...) {
+run_or_load_model <- function(model_name, stan_path, data_list,
+                              chains = NULL,
+                              cores = NULL,
+                              cache_dir = "../model_fits",
+                              force_recompile = FALSE,
+                              force_resample = FALSE,
+                              ...) {
+  if (!requireNamespace("cmdstanr", quietly = TRUE)) {
+    stop("The 'cmdstanr' package is required. Install with: install.packages('cmdstanr')")
+  }
+
   dir.create(cache_dir, showWarnings = FALSE, recursive = TRUE)
 
-  # File paths
-  model_file <- file.path(cache_dir, paste0(model_name, "_compiled.rds"))
-  model_hash_file <- file.path(cache_dir, paste0(model_name, "_modelhash.txt"))
-  fit_file <- file.path(cache_dir, paste0(model_name, "_fit.rds"))
-  fit_hash_file <- file.path(cache_dir, paste0(model_name, "_fithash.txt"))
+  total_cores <- if (is.null(cores)) parallel::detectCores() else cores
+  threads_per_chain <- 2
+  parallel_chains <- if (is.null(chains)) floor(total_cores / threads_per_chain) else chains
+  if (parallel_chains < 1) {
+    parallel_chains <- 1
+    threads_per_chain <- total_cores
+  }
+  chains <- parallel_chains
 
-  # Hashes
+  # Paths
+  model_hash_file <- file.path(cache_dir, paste0(model_name, "_modelhash.txt"))
+  model_rds_file  <- file.path(cache_dir, paste0(model_name, "_model.rds"))
+  fit_file        <- file.path(cache_dir, paste0(model_name, "_fit.rds"))
+  fit_hash_file   <- file.path(cache_dir, paste0(model_name, "_fithash.txt"))
+
+  # Hashing
   stan_hash <- unname(tools::md5sum(stan_path))
   data_hash <- digest::digest(data_list)
-  sampling_args <- list(chains = chains, cores = cores, ...)
+  sampling_args <- list(chains = chains,
+                        parallel_chains = parallel_chains,
+                        threads_per_chain = threads_per_chain,
+                        ...)
   args_hash <- digest::digest(sampling_args)
   fit_combined_hash <- paste(stan_hash, data_hash, args_hash, sep = "_")
 
-  # Compile or load model
-  if (!file.exists(model_file) || !file.exists(model_hash_file) || readLines(model_hash_file) != stan_hash) {
-    message("Compiling Stan model...")
-    m <- rstan::stan_model(file = stan_path)
-    saveRDS(m, model_file)
+  # Load or compile model
+  model_obj <- NULL
+  if (!file.exists(model_rds_file) || force_recompile ||
+      !file.exists(model_hash_file) || readLines(model_hash_file) != stan_hash) {
+    message("Compiling Stan model with threading support...")
+    model_obj <- cmdstanr::cmdstan_model(
+      stan_path,
+      cpp_options = list(stan_threads = TRUE)
+    )
+    saveRDS(model_obj, model_rds_file)
     writeLines(stan_hash, model_hash_file)
   } else {
-    message("Loading compiled Stan model...")
-    m <- readRDS(model_file)
+    message("Using cached compiled Stan model...")
+    model_obj <- readRDS(model_rds_file)
   }
 
-  # Fit or load cached result
-  if (!file.exists(fit_file) || !file.exists(fit_hash_file) || readLines(fit_hash_file) != fit_combined_hash) {
-    message("Sampling ", model_name, "...")
-    fit <- rstan::sampling(m, data = data_list, chains = chains, cores = cores, ...)
+  # Load or run sampling
+  if (!file.exists(fit_file) || force_resample ||
+      !file.exists(fit_hash_file) || readLines(fit_hash_file) != fit_combined_hash) {
+    message("Sampling ", model_name,
+            " (chains = ", chains,
+            ", threads_per_chain = ", threads_per_chain, ")...")
+    fit <- model_obj$sample(
+      data = data_list,
+      chains = chains,
+      parallel_chains = parallel_chains,
+      threads_per_chain = threads_per_chain,
+      ...
+    )
     saveRDS(fit, fit_file)
     writeLines(fit_combined_hash, fit_hash_file)
   } else {
@@ -53,3 +92,4 @@ run_or_load_stan <- function(model_name, stan_path, data_list, chains = 4, cores
 
   return(fit)
 }
+
