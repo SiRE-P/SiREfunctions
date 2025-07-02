@@ -7,12 +7,12 @@
 #' @param model_name A short name used to save the compiled model and fit files.
 #' @param stan_path Path to the Stan model file (.stan).
 #' @param data_list A named list of data for the Stan model.
-#' @param chains Number of MCMC chains (default = auto-detected).
-#' @param cores Number of CPU cores to use (default = all available).
+#' @param chains Number of MCMC chains (default = 4).
+#' @param cores Number of CPU cores to use (default = all available minus reserved proportion).
 #' @param cache_dir Directory to store compiled model and fit files (default = "../model_fits").
 #' @param force_recompile Logical, if TRUE forces recompilation even if model hash matches (default = FALSE).
 #' @param force_resample Logical, if TRUE forces re-sampling even if fit hash matches (default = FALSE).
-#' @param ... Additional arguments passed to \code{CmdStanModel$sample()} (e.g., iter_sampling, seed, threads_per_chain).
+#' @param ... Additional arguments passed to \code{CmdStanModel$sample()}, including \code{threads_per_chain}, \code{reserved_core_prop}, \code{iter_sampling}, etc.
 #'
 #' @return A fitted \code{CmdStanMCMC} object.
 #' @export
@@ -29,23 +29,29 @@ run_or_load_model <- function(model_name, stan_path, data_list,
 
   dir.create(cache_dir, showWarnings = FALSE, recursive = TRUE)
 
-  # Detect resources
-  total_cores <- if (is.null(cores)) parallel::detectCores() else cores
-
-  # Handle threads_per_chain safely
+  # User argument handling
   user_args <- list(...)
-  threads_per_chain <- user_args$threads_per_chain %||% 1  # fallback to 1
-  user_args$threads_per_chain <- NULL  # avoid double passing
+  threads_per_chain <- user_args$threads_per_chain
+  user_args$threads_per_chain <- NULL
 
-  # Default chain count if not provided
-  parallel_chains <- if (is.null(chains)) floor(total_cores / threads_per_chain) else chains
-  if (parallel_chains < 1) {
-    parallel_chains <- 1
-    threads_per_chain <- total_cores
-  }
-  chains <- parallel_chains
+  # Default: reserve 10% of cores for other tasks
+  reserved_core_prop <- user_args$reserved_core_prop %||% 0.1
+  user_args$reserved_core_prop <- NULL
 
-  # File paths
+  all_cores <- parallel::detectCores()
+  reserved_cores <- max(1, round(all_cores * reserved_core_prop))
+  available_cores <- max(all_cores - reserved_cores, 1)
+  total_cores <- if (is.null(cores)) available_cores else cores
+
+  chains <- chains %||% 4
+  threads_per_chain <- threads_per_chain %||% max(floor(total_cores / chains), 1)
+  parallel_chains <- chains
+
+  message("Using ", chains, " chains × ", threads_per_chain, " threads (",
+          chains * threads_per_chain, " of ", all_cores, " cores; ",
+          reserved_cores, " reserved)")
+
+  # Paths
   model_hash_file <- file.path(cache_dir, paste0(model_name, "_modelhash.txt"))
   model_rds_file  <- file.path(cache_dir, paste0(model_name, "_model.rds"))
   fit_file        <- file.path(cache_dir, paste0(model_name, "_fit.rds"))
@@ -54,14 +60,15 @@ run_or_load_model <- function(model_name, stan_path, data_list,
   # Hashing
   stan_hash <- unname(tools::md5sum(stan_path))
   data_hash <- digest::digest(data_list)
-  args_hash <- digest::digest(c(list(chains = chains,
-                                     parallel_chains = parallel_chains,
-                                     threads_per_chain = threads_per_chain),
-                                user_args))
+  args_hash <- digest::digest(c(
+    list(chains = chains,
+         parallel_chains = parallel_chains,
+         threads_per_chain = threads_per_chain),
+    user_args
+  ))
   fit_combined_hash <- paste(stan_hash, data_hash, args_hash, sep = "_")
 
-  # Compile or load model
-  model_obj <- NULL
+  # Load or compile model
   if (!file.exists(model_rds_file) || force_recompile ||
       !file.exists(model_hash_file) || readLines(model_hash_file) != stan_hash) {
     message("Compiling Stan model with threading support...")
@@ -76,7 +83,7 @@ run_or_load_model <- function(model_name, stan_path, data_list,
     model_obj <- readRDS(model_rds_file)
   }
 
-  # Sample or load fit
+  # Load or run sampling
   if (!file.exists(fit_file) || force_resample ||
       !file.exists(fit_hash_file) || readLines(fit_hash_file) != fit_combined_hash) {
     message("Sampling ", model_name,
@@ -101,5 +108,5 @@ run_or_load_model <- function(model_name, stan_path, data_list,
   return(fit)
 }
 
-# Helper for default fallback
+# Helper fallback operator
 `%||%` <- function(a, b) if (!is.null(a)) a else b
