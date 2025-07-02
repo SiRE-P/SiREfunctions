@@ -12,7 +12,7 @@
 #' @param cache_dir Directory to store compiled model and fit files (default = "../model_fits").
 #' @param force_recompile Logical, if TRUE forces recompilation even if model hash matches (default = FALSE).
 #' @param force_resample Logical, if TRUE forces re-sampling even if fit hash matches (default = FALSE).
-#' @param ... Additional arguments passed to \code{CmdStanModel$sample()} (e.g., iter_sampling, seed).
+#' @param ... Additional arguments passed to \code{CmdStanModel$sample()} (e.g., iter_sampling, seed, threads_per_chain).
 #'
 #' @return A fitted \code{CmdStanMCMC} object.
 #' @export
@@ -29,8 +29,15 @@ run_or_load_model <- function(model_name, stan_path, data_list,
 
   dir.create(cache_dir, showWarnings = FALSE, recursive = TRUE)
 
+  # Detect resources
   total_cores <- if (is.null(cores)) parallel::detectCores() else cores
-  threads_per_chain <- 2
+
+  # Handle threads_per_chain safely
+  user_args <- list(...)
+  threads_per_chain <- user_args$threads_per_chain %||% 1  # fallback to 1
+  user_args$threads_per_chain <- NULL  # avoid double passing
+
+  # Default chain count if not provided
   parallel_chains <- if (is.null(chains)) floor(total_cores / threads_per_chain) else chains
   if (parallel_chains < 1) {
     parallel_chains <- 1
@@ -38,7 +45,7 @@ run_or_load_model <- function(model_name, stan_path, data_list,
   }
   chains <- parallel_chains
 
-  # Paths
+  # File paths
   model_hash_file <- file.path(cache_dir, paste0(model_name, "_modelhash.txt"))
   model_rds_file  <- file.path(cache_dir, paste0(model_name, "_model.rds"))
   fit_file        <- file.path(cache_dir, paste0(model_name, "_fit.rds"))
@@ -47,14 +54,13 @@ run_or_load_model <- function(model_name, stan_path, data_list,
   # Hashing
   stan_hash <- unname(tools::md5sum(stan_path))
   data_hash <- digest::digest(data_list)
-  sampling_args <- list(chains = chains,
-                        parallel_chains = parallel_chains,
-                        threads_per_chain = threads_per_chain,
-                        ...)
-  args_hash <- digest::digest(sampling_args)
+  args_hash <- digest::digest(c(list(chains = chains,
+                                     parallel_chains = parallel_chains,
+                                     threads_per_chain = threads_per_chain),
+                                user_args))
   fit_combined_hash <- paste(stan_hash, data_hash, args_hash, sep = "_")
 
-  # Load or compile model
+  # Compile or load model
   model_obj <- NULL
   if (!file.exists(model_rds_file) || force_recompile ||
       !file.exists(model_hash_file) || readLines(model_hash_file) != stan_hash) {
@@ -70,19 +76,21 @@ run_or_load_model <- function(model_name, stan_path, data_list,
     model_obj <- readRDS(model_rds_file)
   }
 
-  # Load or run sampling
+  # Sample or load fit
   if (!file.exists(fit_file) || force_resample ||
       !file.exists(fit_hash_file) || readLines(fit_hash_file) != fit_combined_hash) {
     message("Sampling ", model_name,
             " (chains = ", chains,
             ", threads_per_chain = ", threads_per_chain, ")...")
-    fit <- model_obj$sample(
-      data = data_list,
-      chains = chains,
-      parallel_chains = parallel_chains,
-      threads_per_chain = threads_per_chain,
-      ...
-    )
+    fit <- do.call(model_obj$sample, c(
+      list(
+        data = data_list,
+        chains = chains,
+        parallel_chains = parallel_chains,
+        threads_per_chain = threads_per_chain
+      ),
+      user_args
+    ))
     saveRDS(fit, fit_file)
     writeLines(fit_combined_hash, fit_hash_file)
   } else {
@@ -93,3 +101,5 @@ run_or_load_model <- function(model_name, stan_path, data_list,
   return(fit)
 }
 
+# Helper for default fallback
+`%||%` <- function(a, b) if (!is.null(a)) a else b
