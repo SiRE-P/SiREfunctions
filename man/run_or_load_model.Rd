@@ -33,7 +33,7 @@ run_or_load_model(
 
 \item{force_resample}{Logical, if TRUE forces re-sampling even if fit hash matches (default = FALSE).}
 
-\item{...}{Additional arguments passed to \code{CmdStanModel$sample()} (e.g., iter_sampling, seed).}
+\item{...}{Additional arguments passed to \code{CmdStanModel$sample()} (e.g., iter_sampling, seed, threads_per_chain).}
 }
 \value{
 A fitted \code{CmdStanMCMC} object.
