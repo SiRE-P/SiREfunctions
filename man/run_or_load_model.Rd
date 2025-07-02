@@ -10,7 +10,7 @@ run_or_load_model(
   data_list,
   chains = NULL,
   cores = NULL,
-  cache_dir = "../model_fits",
+  cache_dir = "./model_fits",
   force_recompile = FALSE,
   force_resample = FALSE,
   ...
