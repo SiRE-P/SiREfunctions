@@ -23,9 +23,9 @@ run_or_load_model(
 
 \item{data_list}{A named list of data for the Stan model.}
 
-\item{chains}{Number of MCMC chains (default = auto-detected).}
+\item{chains}{Number of MCMC chains (default = 4).}
 
-\item{cores}{Number of CPU cores to use (default = all available).}
+\item{cores}{Number of CPU cores to use (default = all available minus reserved proportion).}
 
 \item{cache_dir}{Directory to store compiled model and fit files (default = "../model_fits").}
 
@@ -33,7 +33,7 @@ run_or_load_model(
 
 \item{force_resample}{Logical, if TRUE forces re-sampling even if fit hash matches (default = FALSE).}
 
-\item{...}{Additional arguments passed to \code{CmdStanModel$sample()} (e.g., iter_sampling, seed, threads_per_chain).}
+\item{...}{Additional arguments passed to \code{CmdStanModel$sample()}, including \code{threads_per_chain}, \code{reserved_core_prop}, \code{iter_sampling}, etc.}
 }
 \value{
 A fitted \code{CmdStanMCMC} object.
