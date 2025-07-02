@@ -94,7 +94,8 @@ run_or_load_model <- function(model_name, stan_path, data_list,
         data = data_list,
         chains = chains,
         parallel_chains = parallel_chains,
-        threads_per_chain = threads_per_chain
+        threads_per_chain = threads_per_chain,
+        output_dir = cache_dir
       ),
       user_args
     ))
