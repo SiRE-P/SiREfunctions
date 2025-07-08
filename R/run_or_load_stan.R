@@ -38,7 +38,7 @@ run_or_load_model <- function(model_name, stan_path, data_list,
   reserved_core_prop <- user_args$reserved_core_prop %||% 0.1
   user_args$reserved_core_prop <- NULL
 
-  all_cores <- parallel::detectCores()
+  all_cores <- parallel::detectCores(logical = FALSE)
   reserved_cores <- max(1, round(all_cores * reserved_core_prop))
   available_cores <- max(all_cores - reserved_cores, 1)
   total_cores <- if (is.null(cores)) available_cores else cores
