@@ -13,6 +13,8 @@ run_or_load_model(
   cache_dir = "./model_fits",
   force_recompile = FALSE,
   force_resample = FALSE,
+  adapt_delta = 0.95,
+  max_treedepth = 11,
   ...
 )
 }
