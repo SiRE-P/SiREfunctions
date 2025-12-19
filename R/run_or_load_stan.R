@@ -22,6 +22,8 @@ run_or_load_model <- function(model_name, stan_path, data_list,
                               cache_dir = "./model_fits",
                               force_recompile = FALSE,
                               force_resample = FALSE,
+                              adapt_delta = 0.95,
+                              max_treedepth = 11,
                               ...) {
   if (!requireNamespace("cmdstanr", quietly = TRUE)) {
     stop("The 'cmdstanr' package is required. Install with: install.packages('cmdstanr')")
@@ -33,6 +35,9 @@ run_or_load_model <- function(model_name, stan_path, data_list,
   user_args <- list(...)
   threads_per_chain <- user_args$threads_per_chain
   user_args$threads_per_chain <- NULL
+
+  if (is.null(user_args$adapt_delta))    user_args$adapt_delta <- adapt_delta
+  if (is.null(user_args$max_treedepth))  user_args$max_treedepth <- max_treedepth
 
   # Default: reserve 10% of cores for other tasks
   reserved_core_prop <- user_args$reserved_core_prop %||% 0.1
@@ -60,11 +65,16 @@ run_or_load_model <- function(model_name, stan_path, data_list,
   # Hashing
   stan_hash <- unname(tools::md5sum(stan_path))
   data_hash <- digest::digest(data_list)
-  args_hash <- digest::digest(c(
-    list(chains = chains,
-         parallel_chains = parallel_chains,
-         threads_per_chain = threads_per_chain),
-    user_args
+  args_hash <- digest::digest(list(
+    chains = chains,
+    parallel_chains = parallel_chains,
+    threads_per_chain = threads_per_chain,
+    adapt_delta = user_args$adapt_delta,
+    max_treedepth = user_args$max_treedepth,
+    iter_warmup = user_args$iter_warmup,
+    iter_sampling = user_args$iter_sampling,
+    thin = user_args$thin,
+    seed = user_args$seed
   ))
   fit_combined_hash <- paste(stan_hash, data_hash, args_hash, sep = "_")
 
@@ -89,13 +99,16 @@ run_or_load_model <- function(model_name, stan_path, data_list,
     message("Sampling ", model_name,
             " (chains = ", chains,
             ", threads_per_chain = ", threads_per_chain, ")...")
+    output_basename <- paste0(model_name, "_", substr(fit_combined_hash, 1, 12))
+    unlink(Sys.glob(file.path(cache_dir, paste0(output_basename, ".*"))), force = TRUE)
     fit <- do.call(model_obj$sample, c(
       list(
         data = data_list,
         chains = chains,
         parallel_chains = parallel_chains,
         threads_per_chain = threads_per_chain,
-        output_dir = cache_dir
+        output_dir = cache_dir,
+        output_basename = output_basename
       ),
       user_args
     ))
